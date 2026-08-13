@@ -1,7 +1,7 @@
 self.__celsius$config = {
     prefix: '/celsius/go/',
-    // Replace this with your actual Vercel project URL
-    bare: 'https://your-celsius-backend.vercel.app/api/bare', 
+    // Replace this with your actual Vercel project URL!! very important
+    bare: 'celsius-engine.vercel.app/api/bare', 
     encodeUrl: url => btoa(url).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
     decodeUrl: url => {
         let str = url.replace(/-/g, '+').replace(/_/g, '/');
