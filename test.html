@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celsius Engine Sandbox</title>
+    
+    <!-- 1. Load the config first --> 
+    <script src="/celsius/celsius.config.js"></script>
+    
+    <script>
+        // 2. Register the Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/celsius/celsius.sw.js', { scope: '/celsius/' })
+                    .then(reg => console.log('[Celsius] Service Worker Ready!', reg.scope))
+                    .catch(err => console.error('[Celsius] SW Failed:', err));
+            });
+        }
+
+        // 3. Navigation function
+        function loadUrl() {
+            const input = document.getElementById('url-input').value;
+            if (!input) return;
+
+            // Make sure it has https://
+            let targetUrl = input.startsWith('http') ? input : 'https://' + input;
+
+            // Encode the URL so it looks like: /celsius/go/aHR0cHM6Ly9leGFtcGxlLmNvbQ
+            const encoded = self.__celsius$config.encodeUrl(targetUrl);
+            const prefix = self.__celsius$config.prefix;
+
+            // Set the iframe source. The Service Worker will intercept this!
+            document.getElementById('celsius-frame').src = prefix + encoded;
+        }
+    </script>
+
+    <style>
+        body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; margin: 0; }
+        .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; max-width: 1000px; }
+        input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #fff; font-size: 16px; }
+        button { padding: 12px 24px; border: none; background: #238636; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2ea043; }
+        iframe { width: 100%; height: 75vh; border: 1px solid #30363d; background: #fff; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>Celsius Engine</h1>
+    
+    <div class="nav-bar">
+        <input type="text" id="url-input" placeholder="Search the web or enter URL (e.g., example.com)" onkeydown="if(event.key === 'Enter') loadUrl()">
+        <button onclick="loadUrl()">Browse</button>
+    </div>
+    
+    <iframe id="celsius-frame"></iframe>
+</body>
+</html>
