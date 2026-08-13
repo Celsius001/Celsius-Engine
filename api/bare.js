@@ -1,44 +1,43 @@
-export default async function handler(req, res) {
-    const targetUrl = req.headers['x-celsius-target'];
-    
-    if (!targetUrl) {
-        return res.status(400).send('Missing x-celsius-target header');
-    }
+import config from '../celsius/celsius.config.js';
+import proxy from '../celsius/celsius.proxy.js';
 
-    // Clean up headers before forwarding
-    const headersToForward = { ...req.headers };
-    delete headersToForward['host'];
-    delete headersToForward['x-celsius-target'];
-    delete headersToForward['x-forwarded-for'];
-    delete headersToForward['x-forwarded-proto'];
+export default async function handler(req, res) {
+    let targetUrl = req.query.url || req.headers['x-celsius-url'];
+
+    if (!targetUrl) {
+        return res.status(400).json({ error: 'Missing url parameter' });
+    }
 
     try {
-        const fetchRes = await fetch(targetUrl, {
-            method: req.method,
-            headers: headersToForward,
-            body: ['GET', 'HEAD'].includes(req.method) ? undefined : req.body,
-            redirect: 'manual'
-        });
-
-        // Set response status
-        res.status(fetchRes.status);
-
-        // Forward headers from the target, omitting those that break iframes
-        for (const [key, value] of fetchRes.headers.entries()) {
-            if (['x-frame-options', 'content-security-policy', 'access-control-allow-origin'].includes(key.toLowerCase())) {
-                continue; 
-            }
-            res.setHeader(key, value);
-        }
-
-        // Allow our proxy to load it
-        res.setHeader('Access-Control-Allow-Origin', '*');
-
-        // Stream the response back to the client
-        const buffer = await fetchRes.arrayBuffer();
-        res.send(Buffer.from(buffer));
-
+        targetUrl = config.decodeUrl(targetUrl);
     } catch (err) {
-        res.status(500).send(`Serverless Transport Error: ${err.message}`);
+        return res.status(400).json({ error: 'Invalid URL encoding' });
     }
+
+    try {
+        new URL(targetUrl);
+    } catch (err) {
+        return res.status(400).json({ error: 'Invalid target URL' });
+    }
+
+    const method = req.method || 'GET';
+    let body;
+
+    if (!['GET', 'HEAD'].includes(method)) {
+        body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+
+    const result = await proxy.proxyRequest(targetUrl, {
+        method,
+        headers: req.headers,
+        body
+    });
+
+    res.status(result.status);
+
+    for (const [key, value] of Object.entries(result.headers)) {
+        res.setHeader(key, value);
+    }
+
+    res.send(result.body);
 }
