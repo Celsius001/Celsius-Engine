@@ -5,42 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celsius Engine Sandbox</title>
     
-    <!-- 1. Load the config first so the client can encode URLs -->
     <script src="/celsius/celsius.config.js"></script>
     
     <script>
-        // 2. Register the Service Worker
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/celsius/celsius.sw.js', { scope: '/celsius/' })
-                    .then(reg => console.log('[Celsius] Service Worker Ready!', reg.scope))
-                    .catch(err => console.error('[Celsius] SW Failed:', err));
+            window.addEventListener('load', async () => {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        if (registration.scope.includes('/celsius/')) {
+                            await registration.unregister();
+                            console.log('[Celsius] Successfully nuked old Service Worker.');
+                        }
+                    }
+
+                    const reg = await navigator.serviceWorker.register('/sw.js');
+                    console.log('[Celsius] Root SW Ready!', reg.scope);
+                    
+                } catch (err) {
+                    console.error('[Celsius] SW Setup Failed:', err);
+                }
             });
         }
 
-        // 3. Navigation and Search function
         function loadUrl() {
             let input = document.getElementById('url-input').value.trim();
             if (!input) return;
 
             let targetUrl;
-            
-            // Check if the input looks like a valid domain or IP address
             const urlPattern = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/;
             
             if (urlPattern.test(input)) {
-                // It's a URL. Add https:// if the user forgot it
                 targetUrl = input.startsWith('http') ? input : 'https://' + input;
             } else {
-                // It's a search term. Route it through DuckDuckGo
                 targetUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(input);
             }
 
-            // Encode the target URL using the config settings
             const encoded = self.__celsius$config.encodeUrl(targetUrl);
             const prefix = self.__celsius$config.prefix;
 
-            // Set the iframe source. The Service Worker will intercept this!
             document.getElementById('celsius-frame').src = prefix + encoded;
         }
     </script>
@@ -101,7 +104,6 @@
     <h1>Celsius Engine</h1>
     
     <div class="nav-bar">
-        <!-- you reached the end of the comments it wasnt vibecoded its for you to understand -->
         <input type="text" id="url-input" placeholder="Search DuckDuckGo or enter a URL..." onkeydown="if(event.key === 'Enter') loadUrl()">
         <button onclick="loadUrl()">Browse</button>
     </div>
