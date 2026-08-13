@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celsius Engine Sandbox</title>
     
-    <!-- 1. Load the config first --> 
+    <!-- 1. Load the config first so the client can encode URLs -->
     <script src="/celsius/celsius.config.js"></script>
     
     <script>
@@ -18,15 +18,25 @@
             });
         }
 
-        // 3. Navigation function
+        // 3. Navigation and Search function
         function loadUrl() {
-            const input = document.getElementById('url-input').value;
+            let input = document.getElementById('url-input').value.trim();
             if (!input) return;
 
-            // Make sure it has https://
-            let targetUrl = input.startsWith('http') ? input : 'https://' + input;
+            let targetUrl;
+            
+            // Check if the input looks like a valid domain or IP address
+            const urlPattern = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/;
+            
+            if (urlPattern.test(input)) {
+                // It's a URL. Add https:// if the user forgot it
+                targetUrl = input.startsWith('http') ? input : 'https://' + input;
+            } else {
+                // It's a search term. Route it through DuckDuckGo
+                targetUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(input);
+            }
 
-            // Encode the URL so it looks like: /celsius/go/aHR0cHM6Ly9leGFtcGxlLmNvbQ
+            // Encode the target URL using the config settings
             const encoded = self.__celsius$config.encodeUrl(targetUrl);
             const prefix = self.__celsius$config.prefix;
 
@@ -36,19 +46,63 @@
     </script>
 
     <style>
-        body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; margin: 0; }
-        .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; max-width: 1000px; }
-        input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #fff; font-size: 16px; }
-        button { padding: 12px 24px; border: none; background: #238636; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #2ea043; }
-        iframe { width: 100%; height: 75vh; border: 1px solid #30363d; background: #fff; border-radius: 6px; }
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: #0d1117; 
+            color: #c9d1d9; 
+            padding: 20px; 
+            margin: 0; 
+        }
+        h1 {
+            margin-top: 0;
+        }
+        .nav-bar { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            max-width: 1000px; 
+        }
+        input { 
+            flex: 1; 
+            padding: 12px; 
+            border-radius: 6px; 
+            border: 1px solid #30363d; 
+            background: #161b22; 
+            color: #fff; 
+            font-size: 16px; 
+        }
+        input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        button { 
+            padding: 12px 24px; 
+            border: none; 
+            background: #238636; 
+            color: white; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 16px;
+        }
+        button:hover { 
+            background: #2ea043; 
+        }
+        iframe { 
+            width: 100%; 
+            height: 75vh; 
+            border: 1px solid #30363d; 
+            background: #fff; 
+            border-radius: 6px; 
+        }
     </style>
 </head>
 <body>
     <h1>Celsius Engine</h1>
     
     <div class="nav-bar">
-        <input type="text" id="url-input" placeholder="Search the web or enter URL (e.g., example.com)" onkeydown="if(event.key === 'Enter') loadUrl()">
+        <!-- you reached the end of the comments it wasnt vibecoded its for you to understand -->
+        <input type="text" id="url-input" placeholder="Search DuckDuckGo or enter a URL..." onkeydown="if(event.key === 'Enter') loadUrl()">
         <button onclick="loadUrl()">Browse</button>
     </div>
     
